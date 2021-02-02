@@ -39,25 +39,48 @@ row15	dcd	 131,131,141,166,134,171,129,128,9,112,116,74,113,73,64,122,122
 row16	dcd	 131,131,141,166,134,171,129,128,9,112,116,74,113,73,64,122,122
 
 NewImage dcd  Nrow0,Nrow1,Nrow2,Nrow3,Nrow4,Nrow5,Nrow6,Nrow7,Nrow8,Nrow9,Nrow10,Nrow11,Nrow12,Nrow13,Nrow14
+
+IsGaussionKernel  dcd  1
 ;**********************************************************************************	
 				ENTRY
 Reset_Handler
 
 ;**********************************************************************************
-
-		
+            ;decide between gaussion filter and edge detection filter          
+    		MOV32   r10, #IsGaussionKernel
+			LDR     r10, [r10]
+			CMP     r10, #0
+			BNE     GaussionStart  ;skip edge detection filter
+			
+			;edge detection filter algorithem
+            MOV32   r8, #1
+    	    MOV32   r9, #1
+MyLoop1		MOV     r3, r8
+			MOV     r4, r9
+			BL      EdgeDetectKernel
+			ADD     r9, r9, #1
+			CMP     r9, #16
+			BNE     MyLoop1
+			ADD     r8, r8, #1
+			MOV32   r9,#1
+			CMP     r8, #16
+			BNE     MyLoop1
+			B       loop   ;skip gaussion filter
+			
+			;gaussion filter algorithem
+GaussionStart		
 	        MOV32   r8, #1
     	    MOV32   r9, #1
-MyLoop		MOV     r3, r8
+MyLoop2		MOV     r3, r8
 			MOV     r4, r9
 			BL      GaussianKernel
 			ADD     r9, r9, #1
 			CMP     r9, #16
-			BNE     MyLoop
+			BNE     MyLoop2
 			ADD     r8, r8, #1
 			MOV32   r9,#1
 			CMP     r8, #16
-			BNE     MyLoop
+			BNE     MyLoop2
 			
 			
 			
@@ -83,12 +106,13 @@ SetIndex    MOV32   r6, #4
 			;MUL     r1, r1,r6
 			MOV32   r6, #NewImage
 			LDR     r6, [r6,r0]
-			STR     r2, [r6,r1]
+			STRB    r2, [r6,r1]
 			MOV     pc, lr
 			
-;r3(row) and r4(column) are inputs of the original image, the function calculates the guasssionkernel of the corresponding pixel
+;r3(row) and r4(column) are inputs of the original image, the function calculates the guasssion kernel of the corresponding pixel
 ;and then stores the result in the appropriate place of the output image(NewImage)
-GaussianKernel  MOV  r7, lr      
+GaussianKernel  MOV  r7, lr 
+                ADDS r3, r3, #0    ;to clear carry bit
                 SUB  r0, r3, #1
                 SUB  r1, r4, #1
 				BL   GetIndex
@@ -136,6 +160,44 @@ GaussianKernel  MOV  r7, lr
 				MOV  r2, r5
 				BL   SetIndex
 				MOV  pc, r7
+				
+;r3(row) and r4(column) are inputs of the original image, the function calculates the edge detect kernel of the corresponding pixel
+;and then stores the result in the appropriate place of the output image(NewImage)
+EdgeDetectKernel  MOV  r7, lr  
+                  ADDS r3, r3, #0    ;to clear carry bit
+				  SUB  r0, r3, #1
+				  MOV  r1, r4
+				  BL   GetIndex
+				  MOV  r5, r2
+				  
+				  MOV  r0, r3
+				  SUB  r1, r4, #1
+				  BL   GetIndex
+				  ADCS r5, r5, r2
+				  
+				  MOV  r0, r3
+				  MOV  r1, r4
+				  BL   GetIndex
+				  MOV  r2, r2, LSL #2 ;r2 = r2*4
+				  SBCS r5, r5, r2     ;r5 = r5-r2
+				  
+				  MOV  r0, r3
+				  ADD  r1, r4, #1
+				  BL   GetIndex
+				  ADCS r5, r5, r2
+				  
+				  ADD  r0, r3, #1
+				  MOV  r1, r4
+				  BL   GetIndex
+				  ADCS r5, r5, r2
+				  
+				  MOV  r5, r5, LSR #2 ;r5=r5/4
+				  ADCS r5, r5, #64
+		          SUB  r0, r3, #1
+				  SUB  r1, r4, #1
+				  MOV  r2, r5
+				  BL   SetIndex
+				  MOV  pc, r7
 				
 							
 ;**********************************************************************************					
