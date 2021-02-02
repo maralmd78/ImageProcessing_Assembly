@@ -6,6 +6,8 @@
 __Vectors
 				DCD  0x20001000     ; stack pointer value when stack is empty
 				DCD  Reset_Handler  ; reset vector
+					
+				
 
 				AREA	myCode, CODE, READONLY
 ;**********************************************************************************
@@ -36,30 +38,35 @@ row14   dcd	 145,145,144,132,95,121,148,85,67,72,166,153,87,80,77,127,127
 row15	dcd	 131,131,141,166,134,171,129,128,9,112,116,74,113,73,64,122,122
 row16	dcd	 131,131,141,166,134,171,129,128,9,112,116,74,113,73,64,122,122
 
-;**********************************************************************************
+NewImage dcd  Nrow0,Nrow1,Nrow2,Nrow3,Nrow4,Nrow5,Nrow6,Nrow7,Nrow8,Nrow9,Nrow10,Nrow11,Nrow12,Nrow13,Nrow14
+
+	
+
+;**********************************************************************************	
 				ENTRY
 Reset_Handler
 
 ;**********************************************************************************
-; You'd want code here to enable GPIOC clock in AHB
-
-            ;MOV32   r1, #row0     ; index0,2
-			;LDR	 r0, [r1,#8]
+	        
+			MOV32   r3, #5  
+			MOV32   r4, #6
+			BL      GaussianKernel
 			
-			;MOV32   r2, #Image    ; index 6,6
-			;LDR	 r3, [r2,#24]
-			;LDR     r4, [r3,#24]
+			MOV32   r6,#NewImage
+			LDR     r6,[r6,#16]
+			LDR     r6,[r6,#20]
 			
+	
 			
-			MOV32   r0, #5  
-			MOV32   r1, #11
-			BL      GetIndex
 			
 			
 loop
             B       loop
 			
-;r0(row) and r1(column) are inputs , r2(output) is the corresponding index of r0 and r1
+			
+;FUNCTION DEFINITIONS
+
+;r0(row) and r1(column) are inputs , r2(output) is the corresponding value of r0 and r1 indices of the original image(Image)
 GetIndex    MOV32   r2, #4
             MUL     r0, r0,r2
 			MUL     r1, r1,r2
@@ -67,8 +74,98 @@ GetIndex    MOV32   r2, #4
 			LDR     r2, [r2,r0]
 			LDR     r2, [r2,r1]
 			MOV     pc, lr
-
 			
+;r0(row) and r1(column) and r2(value) are inputs, set the value of the corresponding index of r0 and r1 to the r2 value in the output image(NewImage)	
+SetIndex    MOV32   r6, #4
+            MUL     r0, r0,r6
+			MUL     r1, r1,r6
+			MOV32   r6, #NewImage
+			LDR     r6, [r6,r0]
+			STR     r2, [r6,r1]
+			MOV     pc, lr
+			
+;r3(row) and r4(column) are inputs of the original image, the function calculates the guasssionkernel of the corresponding pixel
+;and then stores the result in the appropriate place of the output image(NewImage)
+GaussianKernel  MOV  r7, lr      
+                SUB  r0, r3, #1
+                SUB  r1, r4, #1
+				BL   GetIndex
+				MOV  r5, r2
+				SUB  r0, r3, #1
+				MOV  r1, r4
+				BL   GetIndex
+				MOV  r2, r2, LSL #1 ;r2 = r2*2
+				ADCS r5, r5, r2
+				SUB  r0, r3, #1
+				ADD  r1, r4, #1
+				BL   GetIndex
+				ADCS r5, r5, r2
+				MOV  r0, r3
+				SUB  r1, r4, #1
+				BL   GetIndex
+				MOV  r2, r2, LSL #1 ;r2 = r2*2
+				ADCS r5, r5, r2
+				MOV  r0, r3
+				MOV  r1, r4
+				BL   GetIndex
+				MOV  r2, r2, LSL #2 ;r2 = r2*4
+				ADCS r5, r5, r2
+				MOV  r0, r3
+				ADD  r1, r4, #1
+				BL   GetIndex
+				MOV  r2, r2, LSL #1 ;r2 = r2*2
+				ADCS r5, r5, r2
+				ADD  r0, r3, #1
+				SUB  r1, r4, #1
+				BL   GetIndex
+				ADCS r5, r5, r2
+				ADD  r0, r3, #1
+				MOV  r1, r4
+				BL   GetIndex
+				MOV  r2, r2, LSL #1 ;r2 = r2*2
+				ADCS r5, r5, r2
+				ADD  r0, r3, #1
+				ADD  r1, r4, #1
+				BL   GetIndex
+				ADCS r5, r5, r2
+		        SUB  r0, r3, #1
+				SUB  r1, r4, #1
+				MOV  r2, r5
+				BL   SetIndex
+				MOV  pc, r7
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+;**********************************************************************************					
+			AREA myData, DATA, READWRITE		
+				
+Nrow0	dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow1	dcd  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow2 	dcd  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow3 	dcd  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow4   dcd  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow5  	dcd  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow6	dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow7	dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow8	dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow9	dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow10  dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow11	dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow12  dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow13	dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Nrow14  dcd	 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0			
+				
+				
 			
 ;**********************************************************************************
 			END
