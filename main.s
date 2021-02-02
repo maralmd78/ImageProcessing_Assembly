@@ -39,27 +39,29 @@ row15	dcd	 131,131,141,166,134,171,129,128,9,112,116,74,113,73,64,122,122
 row16	dcd	 131,131,141,166,134,171,129,128,9,112,116,74,113,73,64,122,122
 
 NewImage dcd  Nrow0,Nrow1,Nrow2,Nrow3,Nrow4,Nrow5,Nrow6,Nrow7,Nrow8,Nrow9,Nrow10,Nrow11,Nrow12,Nrow13,Nrow14
-
-	
-
 ;**********************************************************************************	
 				ENTRY
 Reset_Handler
 
 ;**********************************************************************************
-	        
-			MOV32   r3, #5  
-			MOV32   r4, #6
+
+		
+	        MOV32   r8, #1
+    	    MOV32   r9, #1
+MyLoop		MOV     r3, r8
+			MOV     r4, r9
 			BL      GaussianKernel
+			ADD     r9, r9, #1
+			CMP     r9, #16
+			BNE     MyLoop
+			ADD     r8, r8, #1
+			MOV32   r9,#1
+			CMP     r8, #16
+			BNE     MyLoop
 			
-			MOV32   r6,#NewImage
-			LDR     r6,[r6,#16]
-			LDR     r6,[r6,#20]
-			
-	
 			
 			
-			
+
 loop
             B       loop
 			
@@ -128,24 +130,14 @@ GaussianKernel  MOV  r7, lr
 				ADD  r1, r4, #1
 				BL   GetIndex
 				ADCS r5, r5, r2
+				MOV  r5, r5, LSR #4 ;r5=r5/16
 		        SUB  r0, r3, #1
 				SUB  r1, r4, #1
 				MOV  r2, r5
 				BL   SetIndex
 				MOV  pc, r7
 				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
+							
 ;**********************************************************************************					
 			AREA myData, DATA, READWRITE		
 				
