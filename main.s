@@ -11,13 +11,17 @@ __Vectors
 
 				AREA	myCode, CODE, READONLY
 ;**********************************************************************************
-GPIOC_CRL   	EQU     0x40011000
-GPIOC_CRH   	EQU     0x40011004
-GPIOC_IDR   	EQU     0x40011008
-GPIOC_ODR   	EQU     0x4001100C
-GPIOC_BSRR  	EQU     0x40011010
-GPIOC_BRR   	EQU     0x40011014
-GPIOC_LCKR  	EQU     0x40011018
+RCC_AHB1ENR     EQU     0x40023830
+GPIOA_MODER     EQU     0x40020000
+GPIOB_MODER     EQU     0x40020400
+GPIOB_OTYPER    EQU     0x40020404
+GPIOA_OSPEEDR   EQU     0x40020008
+GPIOB_OSPEEDR   EQU     0x40020408
+GPIOA_PUPDR     EQU     0x4002000C
+GPIOB_PUPDR     EQU     0x4002040C
+GPIOA_IDR       EQU     0x40020010
+GPIOB_ODR       EQU     0x40020414
+
 
 Image	dcd  row0,row1,row2,row3,row4,row5,row6,row7,row8,row9,row10,row11,row12,row13,row14,row15,row16
 row0	dcd	 129,129,109,153,143,118,158,144,42,102,175,157,133,114,177,72,72
@@ -46,6 +50,75 @@ IsGaussionKernel  dcd  1
 Reset_Handler
 
 ;**********************************************************************************
+            ;initialize micro settings
+			; connect GPIOA and GPIOB clocks
+			MOV32  r10, #RCC_AHB1ENR
+			LDR    r11, [r10]
+			ORR    r11, r11, #3
+			STR    r11, [r10]
+			
+			;define pinA0 as input
+			MOV32  r10, #GPIOA_MODER
+			LDR    r11, [r10]
+			AND    r11, r11, #4294967292 ;11111111111111111111111111111100
+			STR    r11, [r10]
+			
+			;define pinB1 as output
+			MOV32  r10, #GPIOB_MODER
+			LDR    r11, [r10]                
+			AND    r11, r11, #4294967287  ;11111111111111111111111111110111
+			ORR    r11, r11, #4           ;00000000000000000000000000000100 
+            STR    r11, [r10]			
+			
+			;set pinB1 as push pull
+			MOV32  r10, #GPIOB_OTYPER
+			LDR    r11, [r10]
+            AND    r11, r11, #4294967293  ;11111111111111111111111111111101
+            STR    r11, [r10]			
+			
+            ;set speed for pinA0	
+            MOV32  r10,	#GPIOA_OSPEEDR
+          	LDR    r11, [r10]
+            AND    r11, r11, #4294967292   ;11111111111111111111111111111100			
+			STR    r11, [r10]
+			
+			;set speed for pinB1
+			MOV32  r10,	#GPIOB_OSPEEDR
+			LDR    r11, [r10]
+            AND    r11, r11, #4294967283   ;11111111111111111111111111110011			
+			STR    r11, [r10]
+			
+			;set pinA0 pull up/down setting
+			MOV32  r10,	#GPIOA_PUPDR
+			LDR    r11, [r10]
+			AND    r11, r11, #4294967292   ;11111111111111111111111111111100
+			STR    r11, [r10]
+			
+			;set pinB1 pull up/down setting
+			MOV32  r10,	#GPIOB_PUPDR
+			LDR    r11, [r10]
+            AND    r11, r11, #4294967283   ;11111111111111111111111111110011			
+			STR    r11, [r10]
+			
+			;decide to start or not
+ReadPin		MOV32  r10, #GPIOA_IDR
+			LDR    r11, [r10]
+			ANDS   r11, r11, #1            ;00000000000000000000000000000001
+			BEQ    ReadPin
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
             ;decide between gaussion filter and edge detection filter          
     		MOV32   r10, #IsGaussionKernel
 			LDR     r10, [r10]
@@ -83,7 +156,11 @@ MyLoop2		MOV     r3, r8
 			BNE     MyLoop2
 			
 			
-			
+		   ;turn on output ready flag
+           MOV32  r10, #GPIOB_ODR
+           LDR    r11, [r10]
+           ORR    r11, r11, #2        ;00000000000000000000000000000010	
+           STR    r11, [r10]	   
 
 loop
             B       loop
